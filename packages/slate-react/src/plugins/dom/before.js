@@ -68,7 +68,8 @@ function BeforePlugin() {
         editor.delete()
       }
 
-      const hasNewLines = event.data != null && event.data.indexOf('\n') >= 0
+      const inputText = (event.data || '').replace(/\n\r/g, '\n').replace(/\r/g, '\n')
+      const hasNewLines = inputText.indexOf('\n') >= 0
 
       if (isCollapsed && !hasNewLines) {
         saveCurrentNativeNode(editor)
@@ -78,7 +79,7 @@ function BeforePlugin() {
         if (!hasNewLines) {
           editor.insertText(event.data, null, false)
         } else {
-          const chunks = (event.data || '').split('\n')
+          const chunks = inputText.split('\n')
 
           chunks.map((text, i) => {
             if (text.length !== 0) {
