@@ -28,7 +28,6 @@ const debug = Debug('slate:before')
 
 function BeforePlugin() {
   let activeElement = null
-  let compositionCount = 0
   let isComposing = false
   let isCopying = false
   let isDragging = false
@@ -68,7 +67,9 @@ function BeforePlugin() {
         editor.delete()
       }
 
-      const inputText = (event.data || '').replace(/\n\r/g, '\n').replace(/\r/g, '\n')
+      const inputText = (event.data || '')
+        .replace(/\n\r/g, '\n')
+        .replace(/\r/g, '\n')
       const hasNewLines = inputText.indexOf('\n') >= 0
 
       if (isCollapsed && !hasNewLines) {
@@ -156,20 +157,14 @@ function BeforePlugin() {
    */
 
   function onCompositionEnd(event, editor, next) {
-    const n = compositionCount
     isUserActionPerformed = true
+    isComposing = false
 
     // Since we skipped all input events during the composition, once it is over
     // we need to manually call flush to sync the dom to the slate AST
     syncDomToSlateAst(editor)
 
-    // The `count` check here ensures that if another composition starts
-    // before the timeout has closed out this one, we will abort unsetting the
-    // `isComposing` flag, since a composition is still in affect.
-    window.requestAnimationFrame(() => {
-      if (compositionCount > n) return
-      isComposing = false
-    })
+    editor.reconcileDOMNode(window.getSelection().anchorNode)
 
     debug('onCompositionEnd', { event })
     next()
@@ -199,7 +194,6 @@ function BeforePlugin() {
 
   function onCompositionStart(event, editor, next) {
     isComposing = true
-    compositionCount++
 
     const { value } = editor
     const { selection } = value
