@@ -1,7 +1,6 @@
 import Debug from 'debug'
 import React from 'react'
 import Types from 'prop-types'
-import getWindow from 'get-window'
 import warning from 'tiny-warning'
 import throttle from 'lodash/throttle'
 import omit from 'lodash/omit'
@@ -146,8 +145,6 @@ class Content extends React.Component {
    */
 
   componentDidMount() {
-    const window = getWindow(this.ref.current)
-
     window.document.addEventListener(
       'selectionchange',
       this.onNativeSelectionChange
@@ -155,7 +152,7 @@ class Content extends React.Component {
 
     // COMPAT: Restrict scope of `beforeinput` to clients that support the
     // Input Events Level 2 spec, since they are preventable events.
-    if (HAS_INPUT_EVENTS_LEVEL_2) {
+    if (HAS_INPUT_EVENTS_LEVEL_2 && this.ref.current) {
       this.ref.current.addEventListener(
         'beforeinput',
         this.handlers.onBeforeInput
@@ -172,8 +169,6 @@ class Content extends React.Component {
    */
 
   componentWillUnmount() {
-    const window = getWindow(this.ref.current)
-
     if (window) {
       window.document.removeEventListener(
         'selectionchange',
@@ -209,11 +204,12 @@ class Content extends React.Component {
    */
 
   updateSelection = () => {
+    if (!this.ref.current) return
+
     const { editor } = this.props
     const { value } = editor
     const { selection } = value
     const { isBackward } = selection
-    const window = getWindow(this.ref.current)
     const native = window.getSelection()
     const { activeElement } = window.document
 
@@ -458,7 +454,6 @@ class Content extends React.Component {
       const { editor } = this.props
       const { value } = editor
       const { selection } = value
-      const window = getWindow(event.target)
       const domSelection = window.getSelection()
       const range = editor.findRange(domSelection)
 
@@ -521,7 +516,6 @@ class Content extends React.Component {
   onNativeSelectionChange = throttle(event => {
     if (this.props.readOnly) return
 
-    const window = getWindow(event.target)
     const { activeElement } = window.document
 
     const native = window.getSelection()
