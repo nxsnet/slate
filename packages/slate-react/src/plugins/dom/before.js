@@ -165,6 +165,7 @@ function BeforePlugin() {
 
     // Since we skipped all input events during the composition, once it is over
     // we need to manually call flush to sync the dom to the slate AST
+    saveCurrentNativeNode(editor)
     syncDomToSlateAst(editor)
 
     debug('onCompositionEnd', { event })
@@ -209,9 +210,9 @@ function BeforePlugin() {
       // erases selection as soon as composition starts and preventing <spans>
       // to be dropped.
       editor.delete()
-    } else {
-      saveCurrentNativeNode(editor)
     }
+
+    saveCurrentNativeNode(editor)
 
     debug('onCompositionStart', { event })
     next()
