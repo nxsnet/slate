@@ -773,21 +773,31 @@ function BeforePlugin() {
 
           // If there's only a single text node here, then we modify it's dom content directly
           // If there are multiple though, then it's a bit of an unknown situation, so we replace the entire span
-          if (stringNode.childNodes.length === 1) {
-            stringNode.childNodes[0].textContent = stringNode.childNodes[0].textContent.replace(
-              /[\uFEFF]/g,
-              ''
-            )
-          } else {
-            stringNode.textContent = stringNode.textContent.replace(
-              /[\uFEFF]/g,
-              ''
-            )
-          }
+          removeZeroWidths(stringNode)
 
           stringNode.removeAttribute(DATA_ATTRS.ZERO_WIDTH)
           stringNode.removeAttribute(DATA_ATTRS.LENGTH)
         }
+      }
+    }
+  }
+
+  function removeZeroWidths(parent) {
+    eachTextNode(parent, textNode => {
+      while (true) {
+        const pos = textNode.textContent.indexOf('\uFEFF')
+        if (pos === -1) break
+        textNode.deleteData(pos, 1)
+      }
+    })
+  }
+
+  function eachTextNode(node, cb) {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 1) {
+        eachTextNode(child, cb)
+      } else if (child.nodeType === 3) {
+        cb(child)
       }
     }
   }
