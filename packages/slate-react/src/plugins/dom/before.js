@@ -11,6 +11,9 @@ import {
 
 import DATA_ATTRS from '../../constants/data-attributes'
 import SELECTORS from '../../constants/selectors'
+import sanitizeDomOnError from '../../utils/sanitize-dom-on-error'
+import safelyGetParentKeyNode from '../../utils/safely-get-parent-key-node'
+import findDomNode from '../../utils/find-dom-node'
 
 /**
  * Debug.
@@ -569,32 +572,44 @@ function BeforePlugin() {
 
   function syncDomToSlateAst(editor) {
     const { nextNativeOperation } = editor.controller.tmp
-    if (!nextNativeOperation) return false
+    if (!nextNativeOperation || nextNativeOperation.length === 0) return false
     editor.controller.tmp.nextNativeOperation = null
 
-    const {
-      slateSelection: oldSlateSelection,
-      slateDomSpan,
-    } = nextNativeOperation
     const {
       anchorNode: textNode,
       anchorOffset: currentOffset,
     } = window.getSelection()
 
-    // Sanity checks:
-    // - Ensure that the currently selected text node is in the dom and has a valid root slate span
-    // - Ensure that that span is the same one as what we saved earlier.  If it's not, then we might not
-    //   be able to map the changes we see in the dom back into the slate AST
-    const currentSlateDomSpan = textNode.parentElement.closest(SELECTORS.KEY)
-    if (currentSlateDomSpan == null)
-      throw Error('YOWIE WOWIE: could not find slate span')
-    if (slateDomSpan !== currentSlateDomSpan)
-      throw Error('YOWIE WOWIE: slate span node mismatch')
+    // Just in case: Make sure the currently selected node is in the list of nodes we are going to sync
+    addCurrentlySelectedKeyNode(editor, nextNativeOperation)
 
-    const key = oldSlateSelection.anchor.key
+    // Now sync the content of all nodes in the lis tinto our AST
+    for (const node of nextNativeOperation) {
+      sanitizeDomOnError(editor, node, () => syncNodeToSlateAst(editor, node))
+    }
+
+    // Finally make sure the browser and slate agree on where your selection should be
+    sanitizeDomOnError(editor, textNode, () =>
+      syncSelection(editor, textNode, currentOffset)
+    )
+
+    // Last step is more of a sanity thing: Make sure the dom structure and text roughly match what slate things they should!
+    // This is normally called in the after plugin, however if we do that there, it will re-sync the selection, which we
+    // just did above, which wastes about a millisecond.
+    editor.reconcileDOMNode(textNode)
+    return true
+  }
+
+  function syncNodeToSlateAst(editor, slateDomSpan) {
+    // Re-read the slate span from the dom, _just in case_ it has been removed from the dom since!
+    const key = slateDomSpan.getAttribute(DATA_ATTRS.KEY)
+    slateDomSpan = findDomNode(key)
+
     const path = editor.value.document.getPath(key)
     const slateAstNode = editor.value.document.getNode(key)
 
+    // Strip any zero-width spaces that slate uses internally.  React will clean these up too, but we are trying to
+    // avoid having to react-render right now
     sanitizeZeroWidthSpaces(editor, slateDomSpan)
 
     // Now grab the full current text content of the slate dom node that represents the full slate AST node
@@ -602,12 +617,9 @@ function BeforePlugin() {
     // so they might legitimately need to be in the dom, but should never be in the AST
     const newTextContent = slateDomSpan.textContent.replace(/[\uFEFF]/g, '')
     syncTextToAst(editor, slateAstNode, path, newTextContent)
+  }
 
-    // If the textNode is no longer in the dom, then something has gone very wrong with the insert operation
-    // on the previous line:
-    if (textNode.parentElement == null)
-      throw Error('YOWIE WOWIE: text node is no longer in the dom!')
-
+  function syncSelection(editor, textNode, currentOffset) {
     // Now we need to go and update the selection.  First, we modify slate's internal representation of the selection:
     const newSelectionPosition = Math.min(
       textNode.textContent.length,
@@ -618,21 +630,13 @@ function BeforePlugin() {
     // AST
     const point = editor.findPoint(textNode, newSelectionPosition)
     if (point == null)
-      throw Error(
-        'YOWIE WOWIE: Unable to translate dom position to slate position!'
-      )
+      throw Error('Unable to translate dom position to slate position!')
     setSlateSelection(editor, point.path, point.key, point.offset)
 
     // There's a good chance that slate will do nothing with the update above, partly because we have disabled selection
     // updates in some cases.  So, let's also force the browser to move the selection to where we want.
     // (IIRC in some cases slate was also moving the selection back to an old place sometimes, so this fixes that too).
     setDomSelection(textNode, newSelectionPosition)
-
-    // Last step is more of a sanity thing: Make sure the dom structure and text roughly match what slate things they should!
-    // This is normally called in the after plugin, however if we do that there, it will re-sync the selection, which we
-    // just did above, which wastes about a millisecond.
-    editor.reconcileDOMNode(textNode)
-    return true
   }
 
   /**
@@ -789,20 +793,26 @@ function BeforePlugin() {
   }
 
   function saveCurrentNativeNode(editor) {
-    if (editor.controller.tmp.nextNativeOperation) {
-      throw Error('YOWIE WOWIE: already have a native op!')
+    if (!editor.controller.tmp.nextNativeOperation) {
+      editor.controller.tmp.nextNativeOperation = []
     }
 
-    // Save a reference to the currently selected AST node, and the current selection
+    addCurrentlySelectedKeyNode(
+      editor,
+      editor.controller.tmp.nextNativeOperation
+    )
+  }
+
+  function addCurrentlySelectedKeyNode(editor, keyNodes) {
+    // The node with a data-key property entirely encompasses a single slate AST text node.
+    // It'll have lots of children for the various decorations, but its entire textContent should map
+    // to a single AST node
+    const currentSpan = safelyGetParentKeyNode(window.getSelection().anchorNode)
+
+    // Save a reference to the currently selected AST node
     // Once the browser has modified the dom, we'll use these to figure out what changes were made
-    editor.controller.tmp.nextNativeOperation = {
-      slateSelection: editor.value.selection,
-      // The node with a data-key property entirely encompasses a single slate AST text node.
-      // It'll have lots of children for the various decorations, but its entire textContent should map
-      // to a single AST node
-      slateDomSpan: window
-        .getSelection()
-        .anchorNode.parentElement.closest(SELECTORS.KEY),
+    if (keyNodes.indexOf(currentSpan) === -1) {
+      keyNodes.push(currentSpan)
     }
   }
 

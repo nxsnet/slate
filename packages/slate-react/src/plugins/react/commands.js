@@ -1,4 +1,4 @@
-import { Block } from 'slate'
+import sanitizeDomOnError from '../../utils/sanitize-dom-on-error'
 
 /**
  * A set of commands for the React plugin.
@@ -65,36 +65,11 @@ function CommandsPlugin() {
    */
 
   function reconcileDOMNode(editor, domNode) {
-    try {
+    return sanitizeDomOnError(editor, domNode, () => {
       const domElement = domNode.parentElement.closest('[data-key]')
       const node = editor.findNode(domElement)
       editor.reconcileNode(node)
-    } catch (e) {
-      console.error(e)
-
-      // Woo!  So, if we get here, something has gone horribly wrong and the browser has modified the dom in a way
-      // that slate can no longer understand.  So, in this event, we are going to replace the entire line (which changes
-      // the react key and forces react to re-build the dom), and this will get everything back into a working state
-      // hopefully.
-      const domElement =
-        domNode.hasAttribute && domNode.hasAttribute('data-key')
-          ? domNode
-          : domNode.parentElement.closest('[data-key]')
-      if (domElement == null) return
-
-      const slateNode = editor.value.document.getChild(
-        domNode.getAttribute('data-key')
-      )
-      if (slateNode == null) return
-
-      const blockNode =
-        slateNode.object === 'block'
-          ? slateNode
-          : editor.value.document.getClosestBlock(slateNode.key)
-      if (blockNode == null) return
-
-      editor.replaceNodeByKey(blockNode.key, Block.create(blockNode.toJSON()))
-    }
+    })
   }
 
   return {
