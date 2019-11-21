@@ -57,6 +57,7 @@ class Content extends React.Component {
     contentKey: Types.number,
     editor: Types.object.isRequired,
     id: Types.string,
+    onContextMenu: Types.func,
     onEvent: Types.func.isRequired,
     readOnly: Types.bool.isRequired,
     role: Types.string,
@@ -556,6 +557,7 @@ class Content extends React.Component {
       role,
       tagName,
       spellCheck,
+      onContextMenu,
     } = props
     const { value } = editor
     const Container = tagName
@@ -606,6 +608,7 @@ class Content extends React.Component {
         style={style}
         role={readOnly ? null : role || 'textbox'}
         tabIndex={tabIndex}
+        onContextMenu={onContextMenu}
         // COMPAT: The Grammarly Chrome extension works by changing the DOM out
         // from under `contenteditable` elements, which leads to weird behaviors
         // so we have to disable it like this. (2017/04/24)

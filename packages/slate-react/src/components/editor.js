@@ -41,6 +41,7 @@ class Editor extends React.Component {
     defaultValue: SlateTypes.value,
     id: Types.string,
     onChange: Types.func,
+    onContextMenu: Types.func,
     options: Types.object,
     placeholder: Types.any,
     plugins: Types.array,
@@ -178,6 +179,7 @@ class Editor extends React.Component {
       tabIndex,
       style,
       tagName,
+      onContextMenu,
     } = this.props
 
     const domProps = omit(this.props, Object.keys(Editor.propTypes))
@@ -191,6 +193,7 @@ class Editor extends React.Component {
         contentKey={contentKey}
         editor={this}
         id={id}
+        onContextMenu={onContextMenu}
         onEvent={(handler, event) => this.run(handler, event)}
         readOnly={readOnly}
         role={role}
