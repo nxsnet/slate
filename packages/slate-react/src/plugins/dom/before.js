@@ -164,8 +164,6 @@ function BeforePlugin() {
     // we need to manually call flush to sync the dom to the slate AST
     syncDomToSlateAst(editor)
 
-    editor.reconcileDOMNode(window.getSelection().anchorNode)
-
     debug('onCompositionEnd', { event })
     next()
   }
@@ -424,7 +422,7 @@ function BeforePlugin() {
     // The input event fires after the browser has modified the dom
     // At this point we can read the dom to see what the browser did and import that change into slate's AST
     if (syncDomToSlateAst(editor)) {
-      return next()
+      return
     }
 
     if (editor.value.selection.isBlurred) return
@@ -603,14 +601,7 @@ function BeforePlugin() {
     // We do need to strip any zero-width spaces though, since slate uses them for decorations and other things,
     // so they might legitimately need to be in the dom, but should never be in the AST
     const newTextContent = slateDomSpan.textContent.replace(/[\uFEFF]/g, '')
-
-    editor.insertTextAtRange(
-      Range.create({
-        anchor: { path, key, offset: 0 },
-        focus: { path, key, offset: slateAstNode.text.length },
-      }),
-      newTextContent
-    )
+    syncTextToAst(editor, slateAstNode, path, newTextContent)
 
     // If the textNode is no longer in the dom, then something has gone very wrong with the insert operation
     // on the previous line:
@@ -630,12 +621,111 @@ function BeforePlugin() {
       throw Error(
         'YOWIE WOWIE: Unable to translate dom position to slate position!'
       )
-    editor.select(Range.create({ anchor: point, focus: point }))
+    setSlateSelection(editor, point.path, point.key, point.offset)
 
     // There's a good chance that slate will do nothing with the update above, partly because we have disabled selection
     // updates in some cases.  So, let's also force the browser to move the selection to where we want.
     // (IIRC in some cases slate was also moving the selection back to an old place sometimes, so this fixes that too).
-    window.getSelection().collapse(textNode, newSelectionPosition)
+    setDomSelection(textNode, newSelectionPosition)
+
+    // Last step is more of a sanity thing: Make sure the dom structure and text roughly match what slate things they should!
+    // This is normally called in the after plugin, however if we do that there, it will re-sync the selection, which we
+    // just did above, which wastes about a millisecond.
+    editor.reconcileDOMNode(textNode)
+    return true
+  }
+
+  /**
+   * Intelligently syncs text changes to the slate AST.  If we can determine with confidence that all the user did
+   * was insert a single letter or two, then there's a much faster code path we can take.  If we can't determine that,
+   * then we'll replace the entire text content of the AST node, _but_ it will take an extra 2-3 ms
+   */
+
+  function syncTextToAst(editor, slateAstNode, path, newText) {
+    const oldText = slateAstNode.text
+    if (newText === oldText) return
+
+    const key = slateAstNode.key
+
+    // Look for the number of characters at the start and end of the two pieces of text that exactly match,
+    // position for position.
+    const numStartingCharsSame = commonCharactersAtStart(newText, oldText)
+    const numEndingCharsSame = commonCharactersAtEnd(
+      newText.substring(numStartingCharsSame),
+      oldText.substring(numStartingCharsSame)
+    )
+
+    // Now, if the number of matching characters is the same as the length of the old text, then we know the new
+    // text _only_ contains additions, and those additions start where the matching characters at the start stopped.
+    if (numStartingCharsSame + numEndingCharsSame !== oldText.length) {
+      // There is a deletion somewhere, so let's just replace the whole node's text
+      editor.insertTextAtRange(
+        Range.create({
+          anchor: { path, key, offset: 0 },
+          focus: { path, key, offset: slateAstNode.text.length },
+        }),
+        newText
+      )
+    } else {
+      // We are _just_ inserting characters, so we can do a much faster AST operation!
+      const insertions = newText.substring(
+        numStartingCharsSame,
+        newText.length - numEndingCharsSame
+      )
+      editor.insertTextByPath(path, numStartingCharsSame, insertions, null)
+    }
+  }
+
+  /** Returns the number of continous characters that exactly match, starting at the beginning of the string */
+
+  function commonCharactersAtStart(left, right) {
+    for (let i = 0; i < left.length && i < right.length; i++) {
+      if (left[i] !== right[i]) return i
+    }
+    return Math.min(left.length, right.length)
+  }
+
+  /** Returns the number of continous characters that exactly match, starting at the end of the string */
+
+  function commonCharactersAtEnd(left, right) {
+    const leftLength = left.length
+    const rightLength = right.length
+
+    for (let i = 0; i < leftLength && i < rightLength; i++) {
+      if (left[leftLength - i - 1] !== right[rightLength - i - 1]) return i
+    }
+    return Math.min(leftLength, rightLength)
+  }
+
+  /** Syncs a new selection position to slate, but only if slate does not already have that position as its value */
+
+  function setSlateSelection(editor, path, key, offset) {
+    const { selection } = editor.value
+
+    if (
+      !selection.isCollapsed ||
+      selection.anchor.key !== key ||
+      selection.anchor.offset !== offset
+    ) {
+      const point = { path, key, offset }
+      editor.select(Range.create({ anchor: point, focus: point }))
+    }
+  }
+
+  /** Syncs a new selection position to the dom, but only if the dom does not already have that position */
+
+  function setDomSelection(textNode, offset) {
+    const selection = window.getSelection()
+
+    if (
+      selection == null ||
+      selection.anchorNode !== textNode ||
+      selection.focusNode !== textNode ||
+      selection.anchorOffset !== offset ||
+      selection.focusOffset !== offset
+    ) {
+      selection.collapse(textNode, offset)
+    }
   }
 
   /**
