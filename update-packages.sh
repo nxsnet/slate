@@ -19,7 +19,7 @@ if [ -n "$(git status --porcelain)" ]; then
   git commit -am "$@"
   git push origin master
 fi
-echo "$(git rev-parse HEAD)"
+echo "slate-package-fork: $(git rev-parse HEAD)"
 
 cd ../slate-react-package-fork
 if [ -n "$(git status --porcelain)" ]; then
@@ -27,4 +27,12 @@ if [ -n "$(git status --porcelain)" ]; then
   git commit -am "$@"
   git push origin master
 fi
-echo "$(git rev-parse HEAD)"
+echo "slate-react-package-fork: $(git rev-parse HEAD)"
+
+cd ../slate-hotkeys-package-fork
+if [ -n "$(git status --porcelain)" ]; then
+  git add .
+  git commit -am "$@"
+  git push origin master
+fi
+echo "slate-hotkeys-package-fork: $(git rev-parse HEAD)"
