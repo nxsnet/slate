@@ -12,6 +12,8 @@ cp packages/slate/package.json ../slate-package-fork/
 cp packages/slate/lib/* ../slate-package-fork/lib/
 cp packages/slate-react/package.json ../slate-react-package-fork/
 cp packages/slate-react/lib/* ../slate-react-package-fork/lib/
+cp packages/slate-hotkeys/package.json ../slate-hotkeys-package-fork/
+cp packages/slate-hotkeys/lib/* ../slate-hotkeys-package-fork/lib/
 
 cd ../slate-package-fork
 if [ -n "$(git status --porcelain)" ]; then
