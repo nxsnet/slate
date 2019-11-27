@@ -142,7 +142,12 @@ function BeforePlugin() {
       // of the check list example).
       const node = editor.findNode(relatedTarget)
 
-      if (el != null && el.contains(relatedTarget) && node && !editor.isVoid(node)) {
+      if (
+        el != null &&
+        el.contains(relatedTarget) &&
+        node &&
+        !editor.isVoid(node)
+      ) {
         return
       }
     }
@@ -163,7 +168,7 @@ function BeforePlugin() {
     isUserActionPerformed = true
     isComposing = false
 
-    // Since we skipped all input events during the composition, once it is over
+    // Since we may have skipped some input events during the composition, once it is over
     // we need to manually call flush to sync the dom to the slate AST
     saveCurrentNativeNode(editor)
     syncDomToSlateAst(editor)
@@ -421,7 +426,16 @@ function BeforePlugin() {
    */
 
   function onInput(event, editor, next) {
-    if (isComposing) return
+    if (isComposing) {
+      // Safari is broken :(
+      if (HAS_INPUT_EVENTS_LEVEL_2) return
+
+      // During compositions we _have_ to scan the dom to see what has changed, we cannot ever rely on onBeforeInput
+      // modifying the AST since that will change the dom text node!
+      saveCurrentNativeNode(editor)
+      syncDomToSlateAst(editor)
+      return
+    }
 
     // The input event fires after the browser has modified the dom
     // At this point we can read the dom to see what the browser did and import that change into slate's AST
@@ -509,9 +523,8 @@ function BeforePlugin() {
 
   function onSelect(event, editor, next) {
     if (isCopying) return
-    if (isComposing) return
-
     if (editor.readOnly) return
+    if (isComposing && HAS_INPUT_EVENTS_LEVEL_2) return
 
     // Save the new `activeElement`.
     const window = getWindow(event.target)
