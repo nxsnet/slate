@@ -8,6 +8,7 @@ import { IS_IOS, IS_IE, IS_EDGE } from 'slate-dev-environment'
 import cloneFragment from '../../utils/clone-fragment'
 import getEventTransfer from '../../utils/get-event-transfer'
 import setEventTransfer from '../../utils/set-event-transfer'
+import SELECTORS from '../../constants/selectors'
 
 /**
  * Debug.
@@ -38,16 +39,6 @@ function AfterPlugin(options = {}) {
 
   function onBeforeInput(event, editor, next) {
     const { value } = editor
-    const isSynthetic = !!event.nativeEvent
-
-    // If the event is synthetic, it's React's polyfill of `beforeinput` that
-    // isn't a true `beforeinput` event with meaningful information. It only
-    // gets triggered for character insertions, so we can just insert directly.
-    if (isSynthetic) {
-      event.preventDefault()
-      editor.insertText(event.data)
-      return next()
-    }
 
     // Otherwise, we can use the information in the `beforeinput` event to
     // figure out the exact change that will occur, and prevent it.
@@ -439,15 +430,6 @@ function AfterPlugin(options = {}) {
     const { document, selection } = value
     const { start } = selection
     const hasVoidParent = document.hasVoidParent(start.path, editor)
-
-    // COMPAT: In iOS, some of these hotkeys are handled in the
-    // `onNativeBeforeInput` handler of the `<Content>` component in order to
-    // preserve native autocorrect behavior, so they shouldn't be handled here.
-    if (Hotkeys.isSplitBlock(event) && !IS_IOS) {
-      return hasVoidParent
-        ? editor.moveToStartOfNextText()
-        : editor.splitBlock()
-    }
 
     if (Hotkeys.isDeleteBackward(event) && !IS_IOS) {
       return editor.deleteCharBackward()

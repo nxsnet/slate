@@ -12,37 +12,89 @@ import DATA_ATTRS from '../constants/data-attributes'
  * @type {Component}
  */
 
-const TextString = ({ text = '', isTrailing = false }) => {
-  return (
-    <span
-      {...{
-        [DATA_ATTRS.STRING]: true,
-      }}
-    >
-      {text}
-      {isTrailing ? '\n' : null}
-    </span>
-  )
-}
+class TextString extends React.Component {
+  constructor(props) {
+    super(props)
+    this.ref = React.createRef()
+    // This component may have skipped rendering due to native operations being
+    // applied. If an undo is performed React will see the old and new shadow DOM
+    // match and not apply an update. Forces each render to actually reconcile.
+    this.forceUpdateFlag = false
+  }
 
-/**
- * Leaf strings without text, render as zero-width strings.
- *
- * @type {Component}
- */
+  shouldComponentUpdate(nextProps) {
+    // If a native operation has made the text content the same as what
+    // we are going to make it, skip. Maintains the native spell check handling.
+    const domNode = this.ref.current
+    const domTextContent = domNode.textContent
+    const reactTextContent = nextProps.children
+    if (domTextContent !== reactTextContent) return true
 
-const ZeroWidthString = ({ length = 0, isLineBreak = false }) => {
-  return (
-    <span
-      {...{
-        [DATA_ATTRS.ZERO_WIDTH]: isLineBreak ? 'n' : 'z',
-        [DATA_ATTRS.LENGTH]: length,
-      }}
-    >
-      {'\uFEFF'}
-      {isLineBreak ? <br /> : null}
-    </span>
-  )
+    // If we should be a zero width node, but there is some text content in the dom, then allow react to clean it up
+    if (nextProps.isZeroWidth && domTextContent.replace(/[\uFEFF]/g, '') !== '')
+      return true
+
+    // Otherwise, we shouldn't have to touch the text node at all, we might need to strip the zero-width attributes though!
+    if (domNode.hasAttribute(DATA_ATTRS.ZERO_WIDTH)) {
+      domNode.removeAttribute(DATA_ATTRS.ZERO_WIDTH)
+    }
+
+    if (domNode.hasAttribute(DATA_ATTRS.LENGTH)) {
+      domNode.removeAttribute(DATA_ATTRS.LENGTH)
+    }
+
+    if (!domNode.hasAttribute(DATA_ATTRS.STRING)) {
+      domNode.setAttribute(DATA_ATTRS.STRING, 'true')
+    }
+
+    for (const child of domNode.childNodes) {
+      if (child.tagName === 'BR') {
+        domNode.removeChild(child)
+      }
+    }
+
+    return false
+  }
+
+  componentDidMount() {
+    this.forceUpdateFlag = !this.forceUpdateFlag
+  }
+
+  componentDidUpdate() {
+    this.forceUpdateFlag = !this.forceUpdateFlag
+  }
+
+  render() {
+    const { isZeroWidth, isLineBreak, length, children } = this.props
+
+    if (isZeroWidth) {
+      return (
+        <span
+          key={this.forceUpdateFlag ? 'A' : 'B'}
+          ref={this.ref}
+          {...{
+            [DATA_ATTRS.ZERO_WIDTH]: isLineBreak ? 'n' : 'z',
+            [DATA_ATTRS.LENGTH]: length || 0,
+          }}
+        >
+          {'\uFEFF'}
+          {isLineBreak ? <br /> : null}
+        </span>
+      )
+    } else {
+      return (
+        <span
+          key={this.forceUpdateFlag ? 'A' : 'B'}
+          ref={this.ref}
+          {...{
+            [DATA_ATTRS.STRING]: true,
+          }}
+        >
+          {children}
+        </span>
+      )
+    }
+  }
 }
 
 /**
@@ -76,7 +128,7 @@ const Leaf = props => {
   if (editor.query('isVoid', parent)) {
     // COMPAT: Render text inside void nodes with a zero-width space.
     // So the node can contain selection but the text is not visible.
-    children = <ZeroWidthString length={parent.text.length} />
+    children = <TextString isZeroWidth length={parent.text.length} />
   } else if (
     text === '' &&
     parent.object === 'block' &&
@@ -86,12 +138,12 @@ const Leaf = props => {
     // COMPAT: If this is the last text node in an empty block, render a zero-
     // width space that will convert into a line break when copying and pasting
     // to support expected plain text.
-    children = <ZeroWidthString isLineBreak />
+    children = <TextString isZeroWidth isLineBreak />
   } else if (text === '') {
     // COMPAT: If the text is empty, it's because it's on the edge of an inline
     // node, so we render a zero-width space so that the selection can be
     // inserted next to it still.
-    children = <ZeroWidthString />
+    children = <TextString isZeroWidth />
   } else {
     // COMPAT: Browsers will collapse trailing new lines at the end of blocks,
     // so we need to add an extra trailing new lines to prevent that.
@@ -101,9 +153,9 @@ const Leaf = props => {
     const isLastLeaf = index === leaves.size - 1
 
     if (isLastText && isLastLeaf && lastChar === '\n') {
-      children = <TextString isTrailing text={text} />
+      children = <TextString>{`${text}\n`}</TextString>
     } else {
-      children = <TextString text={text} />
+      children = <TextString>{text}</TextString>
     }
   }
 

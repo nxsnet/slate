@@ -12,10 +12,10 @@ import DATA_ATTRS from '../constants/data-attributes'
  */
 
 function findDOMNode(key, win = window) {
-  warning(
-    false,
-    'As of slate-react@0.22 the `findDOMNode(key)` helper is deprecated in favor of `editor.findDOMNode(path)`.'
-  )
+  // warning(
+  //   false,
+  //   'As of slate-react@0.22 the `findDOMNode(key)` helper is deprecated in favor of `editor.findDOMNode(path)`.'
+  // )
 
   if (Node.isNode(key)) {
     key = key.key

@@ -1,3 +1,5 @@
+import sanitizeDomOnError from '../../utils/sanitize-dom-on-error'
+
 /**
  * A set of commands for the React plugin.
  *
@@ -36,14 +38,21 @@ function CommandsPlugin() {
     }
 
     // If the text is no different, abort.
-    if (text === domText) return
+    // Ignore all zero-width spaces here.  There will definitely be some in the dom
+    // and we don't want those to make slate thing that the dom does not match the slate AST:
+    if (text.replace(/[\uFEFF]/g, '') === domText.replace(/[\uFEFF]/g, ''))
+      return
 
     let entire = selection.moveAnchorTo(path, 0).moveFocusTo(path, text.length)
 
     entire = document.resolveRange(entire)
 
     // Change the current value to have the leaf's text replaced.
-    editor.insertTextAtRange(entire, domText, node.marks)
+    editor.insertTextAtRange(
+      entire,
+      domText.replace(/[\uFEFF]/g, ''),
+      node.marks
+    )
     return
   }
 
@@ -56,9 +65,11 @@ function CommandsPlugin() {
    */
 
   function reconcileDOMNode(editor, domNode) {
-    const domElement = domNode.parentElement.closest('[data-key]')
-    const node = editor.findNode(domElement)
-    editor.reconcileNode(node)
+    return sanitizeDomOnError(editor, domNode, () => {
+      const domElement = domNode.parentElement.closest('[data-key]')
+      const node = editor.findNode(domElement)
+      editor.reconcileNode(node)
+    })
   }
 
   return {
