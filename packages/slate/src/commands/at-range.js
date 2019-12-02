@@ -440,7 +440,7 @@ Commands.deleteCharForwardAtRange = (editor, range) => {
   const { start } = range
   let startBlock = document.getClosestBlock(start.path)
 
-  if ((startBlock = null)) {
+  if (startBlock == null) {
     const node = document.getNode(start.path)
 
     if (
