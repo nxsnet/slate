@@ -88,6 +88,9 @@ class Content extends React.Component {
    */
 
   componentDidCatch(error, info) {
+    console.error('!!  COMPONENT DID CATCH')
+    console.error(error)
+    console.error(info)
     debug('componentDidCatch', { error, info })
     // The call to `setState` is required despite not setting a value.
     // Without this call, React will not try to recreate the component tree.

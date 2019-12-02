@@ -23,6 +23,9 @@ function applyOperation(value, op) {
   const { type } = op
   debug(type, op)
 
+  // prettier-ignore
+  if (window.ENABLE_SLATE_LOGGING) console.log(`    apply_operation: ${type} ${(JSON.stringify(op.toJSON().properties) || '').substring(0, 100)}`)
+
   switch (type) {
     case 'add_annotation': {
       const { annotation } = op

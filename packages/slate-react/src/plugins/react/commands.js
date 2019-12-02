@@ -47,6 +47,8 @@ function CommandsPlugin() {
 
     entire = document.resolveRange(entire)
 
+    console.warn('!!  Forced to reconcile dom node :((')
+
     // Change the current value to have the leaf's text replaced.
     editor.insertTextAtRange(
       entire,

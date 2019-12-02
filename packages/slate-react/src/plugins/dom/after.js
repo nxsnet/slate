@@ -409,8 +409,16 @@ function AfterPlugin(options = {}) {
       editor.blur()
     }
 
+    // prettier-ignore
+    if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterOnInput:', JSON.stringify(editor.value.selection.toJSON()))
+
     const { anchorNode } = domSelection
     editor.reconcileDOMNode(anchorNode)
+
+    // prettier-ignore
+    if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterReconci:', JSON.stringify(editor.value.selection.toJSON()))
+    // prettier-ignore
+    if (window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
     next()
   }
@@ -633,6 +641,8 @@ function AfterPlugin(options = {}) {
     const window = getWindow(event.target)
     const domSelection = window.getSelection()
     const selection = editor.findSelection(domSelection)
+    // prettier-ignore
+    if (window.ENABLE_SLATE_LOGGING && domSelection && editor.value.selection.anchor && selection && selection.anchor) console.log(`!! onSelect domOffset:${domSelection.anchorOffset} oldSlate: ${editor.value.selection.anchor.offset} newSlate: ${selection.anchor.offset}`)
 
     if (selection) {
       editor.select(selection)

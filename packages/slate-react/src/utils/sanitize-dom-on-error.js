@@ -25,6 +25,7 @@ export default function sanitizeDomOnError(editor, domNode, fn) {
         : editor.value.document.getClosestBlock(slateNode.key)
     if (blockNode == null) return
 
+    if (window.ENABLE_SLATE_LOGGING) console.log('    replacing entire line')
     editor.replaceNodeByKey(blockNode.key, Block.create(blockNode.toJSON()))
   }
 }
