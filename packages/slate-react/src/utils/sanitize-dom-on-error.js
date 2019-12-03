@@ -35,7 +35,8 @@ export default function sanitizeDomOnError(editor, domNode, fn) {
       lineIndex >= 0 &&
       domElement.tagName === 'DIV' &&
       domElement.childNodes.length === 1 &&
-      domElement.childNodes[0] === selection.anchorNode
+      (domElement.childNodes[0] === selection.anchorNode ||
+        domElement === selection.anchorNode)
     ) {
       console.log('    replacing entire line via dom text')
 
