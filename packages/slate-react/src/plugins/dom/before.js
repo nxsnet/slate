@@ -593,9 +593,12 @@ function BeforePlugin() {
 
   function syncDomToSlateAst(editor) {
     if(window.ENABLE_SLATE_LOGGING) console.log('!! syncDomToSlateAst')
-    const { nextNativeOperation } = editor.controller.tmp
-    if (!nextNativeOperation || nextNativeOperation.length === 0) return false
+    let { nextNativeOperation } = editor.controller.tmp
+    nextNativeOperation = nextNativeOperation || []
     editor.controller.tmp.nextNativeOperation = null
+
+    addCurrentlySelectedKeyNode(editor, nextNativeOperation)
+    if (nextNativeOperation.length === 0) return false
 
     const {
       anchorNode: textNode,
@@ -604,7 +607,6 @@ function BeforePlugin() {
     if(window.ENABLE_SLATE_LOGGING) console.log(`    textNode: ${textNode.textContent} ${textNode.textContent.length}`)
 
     // Just in case: Make sure the currently selected node is in the list of nodes we are going to sync
-    addCurrentlySelectedKeyNode(editor, nextNativeOperation)
 
     // Now sync the content of all nodes in the lis tinto our AST
     let failed = false;
