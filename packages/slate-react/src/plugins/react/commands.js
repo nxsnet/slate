@@ -71,7 +71,7 @@ function CommandsPlugin() {
       const domElement = domNode.parentElement.closest('[data-key]')
       const node = editor.findNode(domElement)
       editor.reconcileNode(node)
-    })
+    }).value
   }
 
   return {

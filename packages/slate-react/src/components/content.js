@@ -215,7 +215,7 @@ class Content extends React.Component {
     // Because of this the user might have typed a character at position 4, but slate thinks there is only
     // 3 characters in the node!  So, the work around is to skip syncing slate's view of the selection to the DOM
     // until the composition is over.
-    if (this.isComposing) return
+    if (this.isComposing && HAS_INPUT_EVENTS_LEVEL_2) return
 
     const { editor } = this.props
     const { value } = editor

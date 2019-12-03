@@ -607,12 +607,18 @@ function BeforePlugin() {
     addCurrentlySelectedKeyNode(editor, nextNativeOperation)
 
     // Now sync the content of all nodes in the lis tinto our AST
+    let failed = false;
     for (const node of nextNativeOperation) {
-      sanitizeDomOnError(editor, node, () => syncNodeToSlateAst(editor, node))
+      if (sanitizeDomOnError(editor, node, () => syncNodeToSlateAst(editor, node)).failed) {
+        failed = true
+      }
     }
     if(window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterInsert :', JSON.stringify(editor.value.selection.toJSON()))
     if(window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${currentOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
+    // If any of the syncing above failed, then we can't really do much else here, let's just bail out to avoid
+    // cascading errors.
+    if (failed) return
 
     // Finally make sure the browser and slate agree on where your selection should be
     sanitizeDomOnError(editor, textNode, () =>
@@ -645,7 +651,7 @@ function BeforePlugin() {
     if(window.ENABLE_SLATE_LOGGING) console.log(`    slateDomSpan: ${slateDomSpan.textContent} ${slateDomSpan.textContent.length}`)
     if(window.ENABLE_SLATE_LOGGING) console.log(`    slateAstNode: ${slateAstNode.text} ${slateAstNode.text.length}`)
     if(window.ENABLE_SLATE_LOGGING) console.log('    flush selBeforeInsert:', JSON.stringify(editor.value.selection.toJSON()))
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
+    if(window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
     // Now grab the full current text content of the slate dom node that represents the full slate AST node
     // We do need to strip any zero-width spaces though, since slate uses them for decorations and other things,
