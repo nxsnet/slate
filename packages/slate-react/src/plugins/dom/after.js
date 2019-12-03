@@ -439,6 +439,10 @@ function AfterPlugin(options = {}) {
     const { start } = selection
     const hasVoidParent = document.hasVoidParent(start.path, editor)
 
+    const selectedBlock = document.getClosestBlock(start.path)
+    const isRtl =
+      selectedBlock != null && selectedBlock.getTextDirection() === 'rtl'
+
     if (Hotkeys.isDeleteBackward(event) && !IS_IOS) {
       return editor.deleteCharBackward()
     }
@@ -476,22 +480,26 @@ function AfterPlugin(options = {}) {
     // selection isn't properly collapsed. (2017/10/17)
     if (Hotkeys.isMoveLineBackward(event)) {
       event.preventDefault()
-      return editor.moveToStartOfBlock()
+      return isRtl ? editor.moveToEndOfBlock() : editor.moveToStartOfBlock()
     }
 
     if (Hotkeys.isMoveLineForward(event)) {
       event.preventDefault()
-      return editor.moveToEndOfBlock()
+      return isRtl ? editor.moveToStartOfBlock() : editor.moveToEndOfBlock()
     }
 
     if (Hotkeys.isExtendLineBackward(event)) {
       event.preventDefault()
-      return editor.moveFocusToStartOfBlock()
+      return isRtl
+        ? editor.moveFocusToEndOfBlock()
+        : editor.moveFocusToStartOfBlock()
     }
 
     if (Hotkeys.isExtendLineForward(event)) {
       event.preventDefault()
-      return editor.moveFocusToEndOfBlock()
+      return isRtl
+        ? editor.moveFocusToStartOfBlock()
+        : editor.moveFocusToEndOfBlock()
     }
 
     // COMPAT: If a void node is selected, or a zero-width text node adjacent to
@@ -501,33 +509,36 @@ function AfterPlugin(options = {}) {
       event.preventDefault()
 
       if (!selection.isCollapsed) {
-        return editor.moveToStart()
+        return isRtl ? editor.moveToEnd() : editor.moveToStart()
       }
 
-      return editor.moveBackward()
+      return isRtl ? editor.moveForward() : editor.moveBackward()
     }
 
     if (Hotkeys.isMoveForward(event)) {
       event.preventDefault()
 
       if (!selection.isCollapsed) {
-        return editor.moveToEnd()
+        return isRtl ? editor.moveToStart() : editor.moveToEnd()
       }
 
-      return editor.moveForward()
+      return isRtl ? editor.moveBackward() : editor.moveForward()
     }
 
     if (Hotkeys.isMoveWordBackward(event)) {
       event.preventDefault()
-      return editor.moveWordBackward()
+      return isRtl ? editor.moveWordForward() : editor.moveWordBackward()
     }
 
     if (Hotkeys.isMoveWordForward(event)) {
       event.preventDefault()
-      return editor.moveWordForward()
+      return isRtl ? editor.moveWordBackward() : editor.moveWordForward()
     }
 
-    if (Hotkeys.isExtendBackward(event)) {
+    if (
+      (!isRtl && Hotkeys.isExtendBackward(event)) ||
+      (isRtl && Hotkeys.isExtendForward(event))
+    ) {
       const startText = document.getNode(start.path)
       const [prevEntry] = document.texts({
         path: start.path,
@@ -547,7 +558,10 @@ function AfterPlugin(options = {}) {
       }
     }
 
-    if (Hotkeys.isExtendForward(event)) {
+    if (
+      (!isRtl && Hotkeys.isExtendForward(event)) ||
+      (isRtl && Hotkeys.isExtendBackward(event))
+    ) {
       const startText = document.getNode(start.path)
       const [nextEntry] = document.texts({ path: start.path })
       let isNextInVoid = false
