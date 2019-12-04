@@ -47,9 +47,24 @@ class TextString extends React.Component {
       domNode.setAttribute(DATA_ATTRS.STRING, 'true')
     }
 
-    for (const child of domNode.childNodes) {
-      if (child.tagName === 'BR') {
-        domNode.removeChild(child)
+    if (!nextProps.isLineBreak && !nextProps.isOnly) {
+      for (const child of domNode.childNodes) {
+        if (child.tagName === 'BR') {
+          domNode.removeChild(child)
+        }
+      }
+    } else {
+      let hasLineBreak = false
+
+      for (const child of domNode.childNodes) {
+        if (child.tagName === 'BR') {
+          hasLineBreak = true
+          break
+        }
+      }
+
+      if (!hasLineBreak) {
+        domNode.appendChild(window.document.createElement('br'))
       }
     }
 
@@ -65,7 +80,7 @@ class TextString extends React.Component {
   }
 
   render() {
-    const { isZeroWidth, isLineBreak, length, children } = this.props
+    const { isZeroWidth, isOnly, isLineBreak, length, children } = this.props
 
     if (isZeroWidth) {
       return (
@@ -78,7 +93,7 @@ class TextString extends React.Component {
           }}
         >
           {'\uFEFF'}
-          {isLineBreak ? <br /> : null}
+          {isLineBreak || isOnly ? <br /> : null}
         </span>
       )
     } else {
@@ -91,6 +106,7 @@ class TextString extends React.Component {
           }}
         >
           {children}
+          {isLineBreak || isOnly ? <br /> : null}
         </span>
       )
     }
@@ -122,13 +138,15 @@ const Leaf = props => {
     key: node.key,
     index,
   })
-
+  const isOnly = leaves.size === 1
   let children
 
   if (editor.query('isVoid', parent)) {
     // COMPAT: Render text inside void nodes with a zero-width space.
     // So the node can contain selection but the text is not visible.
-    children = <TextString isZeroWidth length={parent.text.length} />
+    children = (
+      <TextString isOnly={isOnly} isZeroWidth length={parent.text.length} />
+    )
   } else if (
     text === '' &&
     parent.object === 'block' &&
@@ -138,12 +156,12 @@ const Leaf = props => {
     // COMPAT: If this is the last text node in an empty block, render a zero-
     // width space that will convert into a line break when copying and pasting
     // to support expected plain text.
-    children = <TextString isZeroWidth isLineBreak />
+    children = <TextString isOnly={isOnly} isZeroWidth isLineBreak />
   } else if (text === '') {
     // COMPAT: If the text is empty, it's because it's on the edge of an inline
     // node, so we render a zero-width space so that the selection can be
     // inserted next to it still.
-    children = <TextString isZeroWidth />
+    children = <TextString isOnly={isOnly} isZeroWidth />
   } else {
     // COMPAT: Browsers will collapse trailing new lines at the end of blocks,
     // so we need to add an extra trailing new lines to prevent that.
@@ -153,9 +171,9 @@ const Leaf = props => {
     const isLastLeaf = index === leaves.size - 1
 
     if (isLastText && isLastLeaf && lastChar === '\n') {
-      children = <TextString>{`${text}\n`}</TextString>
+      children = <TextString isOnly={isOnly}>{`${text}\n`}</TextString>
     } else {
-      children = <TextString>{text}</TextString>
+      children = <TextString isOnly={isOnly}>{text}</TextString>
     }
   }
 

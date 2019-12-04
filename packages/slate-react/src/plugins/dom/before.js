@@ -806,15 +806,6 @@ function BeforePlugin() {
           (isStringNode && hasZeroWidthChars) ||
           (isZeroWidth && stringNode.textContent !== '\uFEFF')
         ) {
-          // Oof, sometimes slate adds empty br tags to the dom (see leaf.js), which leads to the code later getting
-          // messed up :(  In this case though, we know the node _shouldn't_ have any, because it must have some
-          // non-zero-width content, so we can just remove them.
-          for (const childNode of stringNode.childNodes) {
-            if (childNode.nodeType === 1 && childNode.tagName === 'BR') {
-              stringNode.removeChild(childNode)
-            }
-          }
-
           if (window.ENABLE_SLATE_LOGGING) console.log('    REPLACING ' + stringNode.childNodes.length)
           // If there's only a single text node here, then we modify it's dom content directly
           // If there are multiple though, then it's a bit of an unknown situation, so we replace the entire span
