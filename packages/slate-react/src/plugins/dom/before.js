@@ -45,7 +45,8 @@ function BeforePlugin() {
    */
 
   function onBeforeInput(event, editor, next) {
-    if (window.ENABLE_SLATE_LOGGING) console.log(`!! onBeforeInput with data:${event.data} inputType:${event.inputType} has2:${HAS_INPUT_EVENTS_LEVEL_2} isSynthetic:${!!event.nativeEvent}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onBeforeInput with data:${JSON.stringify(event.data)} inputType:${event.inputType} has2:${HAS_INPUT_EVENTS_LEVEL_2} isSynthetic:${!!event.nativeEvent}`)
+
     // If the user has started a composition for something like a chinese character
     // then wait to modify slate's AST and wait to force a react render until the composition is done.
     if (isComposing) return
@@ -88,12 +89,12 @@ function BeforePlugin() {
 
           chunks.map((text, i) => {
             if (text.length !== 0) {
-              if (window.ENABLE_SLATE_LOGGING) console.log(`    insert: |${text}|`)
+              /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    insert: |${JSON.stringify(text)}|`)
               editor.insertText(text, null, false)
             }
 
             if (i !== chunks.length - 1) {
-              if (window.ENABLE_SLATE_LOGGING) console.log('    inserting line break')
+              /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    inserting line break')
               editor.splitBlock()
             }
           })
@@ -168,7 +169,8 @@ function BeforePlugin() {
    */
 
   function onCompositionEnd(event, editor, next) {
-    if (window.ENABLE_SLATE_LOGGING) console.log(`!! onCompositionEnd isComposing:${isComposing}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onCompositionEnd isComposing:${isComposing}`)
+
     isUserActionPerformed = true
     isComposing = false
 
@@ -204,7 +206,8 @@ function BeforePlugin() {
    */
 
   function onCompositionStart(event, editor, next) {
-    if (window.ENABLE_SLATE_LOGGING) console.log(`!! onCompositionStart isComposing:${isComposing} isCollapsed:${editor.value.selection.isCollapsed}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onCompositionStart isComposing:${isComposing} isCollapsed:${editor.value.selection.isCollapsed}`)
+
     isComposing = true
 
     const { value } = editor
@@ -431,7 +434,8 @@ function BeforePlugin() {
    */
 
   function onInput(event, editor, next) {
-    if (window.ENABLE_SLATE_LOGGING) console.log(`!! onInput isComposing:${isComposing} hasOp:${!!editor.controller.tmp.nextNativeOperation}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onInput isComposing:${isComposing} hasOp:${!!editor.controller.tmp.nextNativeOperation}`)
+
     if (isComposing) {
       // Safari is broken :(
       if (HAS_INPUT_EVENTS_LEVEL_2) return
@@ -465,7 +469,7 @@ function BeforePlugin() {
 
   function onKeyDown(event, editor, next) {
     if (editor.readOnly) return
-    if (window.ENABLE_SLATE_LOGGING) console.log(`!! onKeyDown isComposing:${isComposing} hasOp:${!!editor.controller.tmp.nextNativeOperation} mods:${event.ctrlKey ? 'ctrl-' : ''}${event.altKey ? 'alt-' : ''}${event.shiftKey ? 'shift-' : ''}${event.metaKey ? 'meta-' : ''} key:${event.key} which:${event.which}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onKeyDown isComposing:${isComposing} hasOp:${!!editor.controller.tmp.nextNativeOperation} mods:${event.ctrlKey ? 'ctrl-' : ''}${event.altKey ? 'alt-' : ''}${event.shiftKey ? 'shift-' : ''}${event.metaKey ? 'meta-' : ''} key:${event.key} which:${event.which}`)
 
     // When composing, we need to prevent all hotkeys from executing while
     // typing. However, certain characters also move the selection before
@@ -592,7 +596,8 @@ function BeforePlugin() {
    */
 
   function syncDomToSlateAst(editor) {
-    if(window.ENABLE_SLATE_LOGGING) console.log('!! syncDomToSlateAst')
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('!! syncDomToSlateAst')
+
     let { nextNativeOperation } = editor.controller.tmp
     nextNativeOperation = nextNativeOperation || []
     editor.controller.tmp.nextNativeOperation = null
@@ -604,19 +609,24 @@ function BeforePlugin() {
       anchorNode: textNode,
       anchorOffset: currentOffset,
     } = window.getSelection()
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    textNode: ${textNode.textContent} ${textNode.textContent.length}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    textNode: ${textNode.textContent} ${textNode.textContent.length}`)
 
     // Just in case: Make sure the currently selected node is in the list of nodes we are going to sync
 
     // Now sync the content of all nodes in the lis tinto our AST
-    let failed = false;
+    let failed = false
+
     for (const node of nextNativeOperation) {
-      if (sanitizeDomOnError(editor, node, () => syncNodeToSlateAst(editor, node)).failed) {
+      if (
+        sanitizeDomOnError(editor, node, () => syncNodeToSlateAst(editor, node))
+          .failed
+      ) {
         failed = true
       }
     }
-    if(window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterInsert :', JSON.stringify(editor.value.selection.toJSON()))
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${currentOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
+
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterInsert :',JSON.stringify(editor.value.selection.toJSON()))
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${currentOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
     // If any of the syncing above failed, then we can't really do much else here, let's just bail out to avoid
     // cascading errors.
@@ -626,14 +636,15 @@ function BeforePlugin() {
     sanitizeDomOnError(editor, textNode, () =>
       syncSelection(editor, textNode, currentOffset)
     )
-    if(window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterSelect2:', JSON.stringify(editor.value.selection.toJSON()))
+
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterSelect2:',JSON.stringify(editor.value.selection.toJSON()))
 
     // Last step is more of a sanity thing: Make sure the dom structure and text roughly match what slate things they should!
     // This is normally called in the after plugin, however if we do that there, it will re-sync the selection, which we
     // just did above, which wastes about a millisecond.
     editor.reconcileDOMNode(textNode)
-    if(window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterReconci:', JSON.stringify(editor.value.selection.toJSON()))
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterReconci:',JSON.stringify(editor.value.selection.toJSON()))
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
     return true
   }
@@ -650,15 +661,15 @@ function BeforePlugin() {
     // avoid having to react-render right now
     sanitizeZeroWidthSpaces(editor, slateDomSpan)
 
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    slateDomSpan: ${slateDomSpan.textContent} ${slateDomSpan.textContent.length}`)
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    slateAstNode: ${slateAstNode.text} ${slateAstNode.text.length}`)
-    if(window.ENABLE_SLATE_LOGGING) console.log('    flush selBeforeInsert:', JSON.stringify(editor.value.selection.toJSON()))
-    if(window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    slateDomSpan: ${slateDomSpan.textContent} ${slateDomSpan.textContent.length}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    slateAstNode: ${slateAstNode.text} ${slateAstNode.text.length}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    flush selBeforeInsert:',JSON.stringify(editor.value.selection.toJSON()))
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
     // Now grab the full current text content of the slate dom node that represents the full slate AST node
     // We do need to strip any zero-width spaces though, since slate uses them for decorations and other things,
     // so they might legitimately need to be in the dom, but should never be in the AST
-    const newTextContent = slateDomSpan.textContent.replace(/[\uFEFF]/g, '')
+    const newTextContent = slateDomSpan.textContent.replace(/[\uFEFF\b]/g, '')
     syncTextToAst(editor, slateAstNode, path, newTextContent)
   }
 
@@ -675,7 +686,7 @@ function BeforePlugin() {
     if (point == null)
       throw Error('Unable to translate dom position to slate position!')
     setSlateSelection(editor, point.path, point.key, point.offset)
-    if(window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterSelect1:', JSON.stringify(editor.value.selection.toJSON()))
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterSelect1:',JSON.stringify(editor.value.selection.toJSON()))
 
     // There's a good chance that slate will do nothing with the update above, partly because we have disabled selection
     // updates in some cases.  So, let's also force the browser to move the selection to where we want.
@@ -806,7 +817,8 @@ function BeforePlugin() {
           (isStringNode && hasZeroWidthChars) ||
           (isZeroWidth && stringNode.textContent !== '\uFEFF')
         ) {
-          if (window.ENABLE_SLATE_LOGGING) console.log('    REPLACING ' + stringNode.childNodes.length)
+          /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    REPLACING ${stringNode.childNodes.length}`)
+
           // If there's only a single text node here, then we modify it's dom content directly
           // If there are multiple though, then it's a bit of an unknown situation, so we replace the entire span
           removeZeroWidths(stringNode)

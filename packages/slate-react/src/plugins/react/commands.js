@@ -40,7 +40,7 @@ function CommandsPlugin() {
     // If the text is no different, abort.
     // Ignore all zero-width spaces here.  There will definitely be some in the dom
     // and we don't want those to make slate thing that the dom does not match the slate AST:
-    if (text.replace(/[\uFEFF]/g, '') === domText.replace(/[\uFEFF]/g, ''))
+    if (text.replace(/[\uFEFF\b]/g, '') === domText.replace(/[\uFEFF\b]/g, ''))
       return
 
     let entire = selection.moveAnchorTo(path, 0).moveFocusTo(path, text.length)
@@ -52,7 +52,7 @@ function CommandsPlugin() {
     // Change the current value to have the leaf's text replaced.
     editor.insertTextAtRange(
       entire,
-      domText.replace(/[\uFEFF]/g, ''),
+      domText.replace(/[\uFEFF\b]/g, ''),
       node.marks
     )
     return
