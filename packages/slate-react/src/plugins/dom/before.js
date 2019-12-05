@@ -36,7 +36,8 @@ function BeforePlugin() {
   let isDragging = false
   let isUserActionPerformed = false
 
-  let nextNativeOperation = null;
+  let nextNativeOperation = null
+  let currentlySelectedCompositionNode = null
 
   /**
    * On before input.
@@ -51,7 +52,7 @@ function BeforePlugin() {
 
     // If the user has started a composition for something like a chinese character
     // then wait to modify slate's AST and wait to force a react render until the composition is done.
-    if (isComposing) return
+    if (checkIsComposing()) return
 
     const isSynthetic = !!event.nativeEvent
     if (editor.readOnly) return
@@ -178,11 +179,18 @@ function BeforePlugin() {
 
     // Since we may have skipped some input events during the composition, once it is over
     // we need to manually call flush to sync the dom to the slate AST
+    saveCurrentlySelectedCompositionNode()
     saveCurrentNativeNode(editor)
     syncDomToSlateAst(editor)
 
     debug('onCompositionEnd', { event })
     next()
+  }
+
+  function onCompositionUpdate() {
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onCompositionUpdate isComposing:${isComposing}`)
+    isComposing = true
+    saveCurrentlySelectedCompositionNode()
   }
 
   /**
@@ -227,6 +235,7 @@ function BeforePlugin() {
       editor.delete()
     }
 
+    saveCurrentlySelectedCompositionNode()
     saveCurrentNativeNode(editor)
 
     debug('onCompositionStart', { event })
@@ -438,7 +447,7 @@ function BeforePlugin() {
   function onInput(event, editor, next) {
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onInput isComposing:${isComposing} hasOp:${!!nextNativeOperation}`)
 
-    if (isComposing) {
+    if (checkIsComposing()) {
       // Safari is broken :(
       if (HAS_INPUT_EVENTS_LEVEL_2) return
 
@@ -476,7 +485,7 @@ function BeforePlugin() {
     // When composing, we need to prevent all hotkeys from executing while
     // typing. However, certain characters also move the selection before
     // we're able to handle it, so prevent their default behavior.
-    if (isComposing) {
+    if (checkIsComposing()) {
       if (Hotkeys.isCompose(event)) event.preventDefault()
       return
     }
@@ -537,7 +546,7 @@ function BeforePlugin() {
   function onSelect(event, editor, next) {
     if (isCopying) return
     if (editor.readOnly) return
-    if (isComposing && HAS_INPUT_EVENTS_LEVEL_2) return
+    if (checkIsComposing() && HAS_INPUT_EVENTS_LEVEL_2) return
 
     // Save the new `activeElement`.
     const window = getWindow(event.target)
@@ -856,10 +865,32 @@ function BeforePlugin() {
       nextNativeOperation = []
     }
 
-    addCurrentlySelectedKeyNode(
-      editor,
-      nextNativeOperation
-    )
+    addCurrentlySelectedKeyNode(editor, nextNativeOperation)
+  }
+
+  function saveCurrentlySelectedCompositionNode() {
+    const selection = window.getSelection()
+
+    currentlySelectedCompositionNode =
+      selection == null ? null : selection.anchorNode
+  }
+
+  function checkIsComposing() {
+    // If React has come through and re-rendered the dom, then it may have interrupted a composition, and there
+    // may not have been an onCompositionEnd event.  So if the node that was last selected during the composition
+    // no longer exists in the dom, let's assume the user aborted the composition.
+    if (isComposing) {
+      if (currentlySelectedCompositionNode == null) isComposing = false
+
+      if (!window.document.body.contains(currentlySelectedCompositionNode)) {
+        console.warn(
+          'Aborting composition because previously selection node is no longer in the dom!'
+        )
+        isComposing = false
+      }
+    }
+
+    return isComposing
   }
 
   function addCurrentlySelectedKeyNode(editor, keyNodes) {
@@ -886,6 +917,7 @@ function BeforePlugin() {
     onBlur,
     onClick,
     onCompositionEnd,
+    onCompositionUpdate,
     onCompositionStart,
     onCopy,
     onCut,
@@ -901,8 +933,13 @@ function BeforePlugin() {
     onKeyDown,
     onPaste,
     onSelect,
-    queries: { userActionPerformed },
-    commands: { clearUserActionPerformed },
+    queries: {
+      userActionPerformed,
+      isComposing: checkIsComposing,
+    },
+    commands: {
+      clearUserActionPerformed,
+    },
   }
 }
 

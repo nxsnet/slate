@@ -209,15 +209,15 @@ class Content extends React.Component {
 
   updateSelection = () => {
     if (!this.ref.current) return
+    const { editor } = this.props
 
     // While the editor is handling a composition (like for Asian input), we allow the browser to modify the DOM
     // and we avoid modifying slate's internal representation of the document until the composition is over.
     // Because of this the user might have typed a character at position 4, but slate thinks there is only
     // 3 characters in the node!  So, the work around is to skip syncing slate's view of the selection to the DOM
     // until the composition is over.
-    if (this.isComposing && HAS_INPUT_EVENTS_LEVEL_2) return
+    if (editor.isComposing() && HAS_INPUT_EVENTS_LEVEL_2) return
 
-    const { editor } = this.props
     const { value } = editor
     const { selection } = value
     const { isBackward } = selection
@@ -497,6 +497,7 @@ class Content extends React.Component {
       handler === 'onBeforeInput' ||
       handler === 'onBlur' ||
       handler === 'onCompositionEnd' ||
+      handler === 'onCompositionUpdate' ||
       handler === 'onCompositionStart' ||
       handler === 'onCopy' ||
       handler === 'onCut' ||
@@ -511,9 +512,6 @@ class Content extends React.Component {
         return
       }
     }
-
-    if (handler === 'onCompositionStart') this.isComposing = true
-    if (handler === 'onCompositionEnd') this.isComposing = false
 
     this.props.onEvent(handler, event)
   }
