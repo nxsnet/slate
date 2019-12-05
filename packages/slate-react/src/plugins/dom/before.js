@@ -36,6 +36,8 @@ function BeforePlugin() {
   let isDragging = false
   let isUserActionPerformed = false
 
+  let nextNativeOperation = null;
+
   /**
    * On before input.
    *
@@ -434,7 +436,7 @@ function BeforePlugin() {
    */
 
   function onInput(event, editor, next) {
-    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onInput isComposing:${isComposing} hasOp:${!!editor.controller.tmp.nextNativeOperation}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onInput isComposing:${isComposing} hasOp:${!!nextNativeOperation}`)
 
     if (isComposing) {
       // Safari is broken :(
@@ -469,7 +471,7 @@ function BeforePlugin() {
 
   function onKeyDown(event, editor, next) {
     if (editor.readOnly) return
-    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onKeyDown isComposing:${isComposing} hasOp:${!!editor.controller.tmp.nextNativeOperation} mods:${event.ctrlKey ? 'ctrl-' : ''}${event.altKey ? 'alt-' : ''}${event.shiftKey ? 'shift-' : ''}${event.metaKey ? 'meta-' : ''} key:${event.key} which:${event.which}`)
+    /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onKeyDown isComposing:${isComposing} hasOp:${!!nextNativeOperation} mods:${event.ctrlKey ? 'ctrl-' : ''}${event.altKey ? 'alt-' : ''}${event.shiftKey ? 'shift-' : ''}${event.metaKey ? 'meta-' : ''} key:${event.key} which:${event.which}`)
 
     // When composing, we need to prevent all hotkeys from executing while
     // typing. However, certain characters also move the selection before
@@ -598,12 +600,11 @@ function BeforePlugin() {
   function syncDomToSlateAst(editor) {
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('!! syncDomToSlateAst')
 
-    let { nextNativeOperation } = editor.controller.tmp
-    nextNativeOperation = nextNativeOperation || []
-    editor.controller.tmp.nextNativeOperation = null
+    const nodesToIncorporate = nextNativeOperation || []
+    nextNativeOperation = null
 
-    addCurrentlySelectedKeyNode(editor, nextNativeOperation)
-    if (nextNativeOperation.length === 0) return false
+    addCurrentlySelectedKeyNode(editor, nodesToIncorporate)
+    if (nodesToIncorporate.length === 0) return false
 
     const {
       anchorNode: textNode,
@@ -616,7 +617,7 @@ function BeforePlugin() {
     // Now sync the content of all nodes in the lis tinto our AST
     let failed = false
 
-    for (const node of nextNativeOperation) {
+    for (const node of nodesToIncorporate) {
       if (
         sanitizeDomOnError(editor, node, () => syncNodeToSlateAst(editor, node))
           .failed
@@ -851,13 +852,13 @@ function BeforePlugin() {
   }
 
   function saveCurrentNativeNode(editor) {
-    if (!editor.controller.tmp.nextNativeOperation) {
-      editor.controller.tmp.nextNativeOperation = []
+    if (!nextNativeOperation) {
+      nextNativeOperation = []
     }
 
     addCurrentlySelectedKeyNode(
       editor,
-      editor.controller.tmp.nextNativeOperation
+      nextNativeOperation
     )
   }
 

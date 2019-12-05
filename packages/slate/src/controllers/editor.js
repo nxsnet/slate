@@ -56,7 +56,6 @@ class Editor {
       merge: null,
       normalize: true,
       save: true,
-      nextNativeOperation: null,
     }
 
     const core = CorePlugin({ plugins })
