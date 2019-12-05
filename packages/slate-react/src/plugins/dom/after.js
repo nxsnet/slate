@@ -571,10 +571,8 @@ function AfterPlugin(options = {}) {
         isNextInVoid = document.hasVoidParent(nextPath, editor)
       }
 
-      if (hasVoidParent || isNextInVoid || startText.text === '') {
-        event.preventDefault()
-        return editor.moveFocusForward()
-      }
+      event.preventDefault()
+      return editor.moveFocusForward()
     }
 
     next()
