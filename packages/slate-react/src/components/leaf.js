@@ -138,7 +138,7 @@ const Leaf = props => {
     key: node.key,
     index,
   })
-  const isOnly = leaves.size === 1
+  const isOnly = block.nodes.size === 1 && leaves.size === 1
   let children
 
   if (editor.query('isVoid', parent)) {
