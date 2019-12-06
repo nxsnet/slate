@@ -2,6 +2,7 @@ import React from 'react'
 import Types from 'prop-types'
 import SlateTypes from 'slate-prop-types'
 import ImmutableTypes from 'react-immutable-proptypes'
+import { IS_FIREFOX } from 'slate-dev-environment'
 
 import OffsetKey from '../utils/offset-key'
 import DATA_ATTRS from '../constants/data-attributes'
@@ -47,7 +48,11 @@ class TextString extends React.Component {
       domNode.setAttribute(DATA_ATTRS.STRING, 'true')
     }
 
-    if (!nextProps.isLineBreak && !nextProps.isOnly) {
+    const shouldHaveLineBreak =
+      (IS_FIREFOX && nextProps.isLineBreak) ||
+      (!IS_FIREFOX && (nextProps.isLineBreak || nextProps.isOnly))
+
+    if (!shouldHaveLineBreak) {
       for (const child of domNode.childNodes) {
         if (child.tagName === 'BR') {
           domNode.removeChild(child)
@@ -81,6 +86,8 @@ class TextString extends React.Component {
 
   render() {
     const { isZeroWidth, isOnly, isLineBreak, length, children } = this.props
+    const shouldHaveLineBreak =
+      (IS_FIREFOX && isLineBreak) || (!IS_FIREFOX && (isLineBreak || isOnly))
 
     if (isZeroWidth) {
       return (
@@ -93,7 +100,7 @@ class TextString extends React.Component {
           }}
         >
           {'\uFEFF'}
-          {isLineBreak || isOnly ? <br /> : null}
+          {shouldHaveLineBreak ? <br /> : null}
         </span>
       )
     } else {
@@ -106,7 +113,7 @@ class TextString extends React.Component {
           }}
         >
           {children}
-          {isLineBreak || isOnly ? <br /> : null}
+          {shouldHaveLineBreak ? <br /> : null}
         </span>
       )
     }
