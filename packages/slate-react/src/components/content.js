@@ -290,7 +290,7 @@ class Content extends React.Component {
     // Otherwise, figure out which DOM nodes should be selected...
     if (selection.isFocused && selection.isSet) {
       const current = !!native.rangeCount && native.getRangeAt(0)
-      const range = editor.findDOMRange(selection)
+      const range = safelyFindDOMRange(editor, selection)
 
       if (!range) {
         warning(
@@ -640,6 +640,14 @@ class Content extends React.Component {
         />
       </Container>
     )
+  }
+}
+
+function safelyFindDOMRange(editor, selection) {
+  try {
+    return editor.findDOMRange(selection)
+  } catch (e) {
+    console.error(e)
   }
 }
 
