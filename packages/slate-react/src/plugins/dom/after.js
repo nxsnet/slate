@@ -539,38 +539,14 @@ function AfterPlugin(options = {}) {
       (!isRtl && Hotkeys.isExtendBackward(event)) ||
       (isRtl && Hotkeys.isExtendForward(event))
     ) {
-      const startText = document.getNode(start.path)
-      const [prevEntry] = document.texts({
-        path: start.path,
-        direction: 'backward',
-      })
-
-      let isPrevInVoid = false
-
-      if (prevEntry) {
-        const [, prevPath] = prevEntry
-        isPrevInVoid = document.hasVoidParent(prevPath, editor)
-      }
-
-      if (hasVoidParent || isPrevInVoid || startText.text === '') {
-        event.preventDefault()
-        return editor.moveFocusBackward()
-      }
+      event.preventDefault()
+      return editor.moveFocusBackward()
     }
 
     if (
       (!isRtl && Hotkeys.isExtendForward(event)) ||
       (isRtl && Hotkeys.isExtendBackward(event))
     ) {
-      const startText = document.getNode(start.path)
-      const [nextEntry] = document.texts({ path: start.path })
-      let isNextInVoid = false
-
-      if (nextEntry) {
-        const [, nextPath] = nextEntry
-        isNextInVoid = document.hasVoidParent(nextPath, editor)
-      }
-
       event.preventDefault()
       return editor.moveFocusForward()
     }
