@@ -4,7 +4,6 @@ import Types from 'prop-types'
 import warning from 'tiny-warning'
 import throttle from 'lodash/throttle'
 import omit from 'lodash/omit'
-import { List } from 'immutable'
 import {
   IS_ANDROID,
   IS_FIREFOX,
@@ -15,7 +14,7 @@ import Hotkeys from 'slate-hotkeys'
 import EVENT_HANDLERS from '../constants/event-handlers'
 import DATA_ATTRS from '../constants/data-attributes'
 import SELECTORS from '../constants/selectors'
-import Node from './node'
+import Document from './document'
 import scrollToSelection from '../utils/scroll-to-selection'
 import removeAllRanges from '../utils/remove-all-ranges'
 
@@ -51,7 +50,7 @@ class Content extends React.Component {
    * @type {Object}
    */
 
-  static propTypes = {
+  static __propTypes = {
     autoCorrect: Types.bool.isRequired,
     className: Types.string,
     contentKey: Types.number,
@@ -572,7 +571,7 @@ class Content extends React.Component {
     } = props
     const { value } = editor
     const Container = tagName
-    const { document, selection } = value
+    const { document } = value
 
     const style = {
       // Prevent the default outline styles.
@@ -601,7 +600,7 @@ class Content extends React.Component {
       [DATA_ATTRS.KEY]: document.key,
     }
 
-    const domProps = omit(this.props, Object.keys(Content.propTypes))
+    const domProps = omit(this.props, Object.keys(Content.__propTypes))
 
     return (
       <Container
@@ -627,17 +626,7 @@ class Content extends React.Component {
         // just the existence of the flag is disabling the extension irrespective of its value
         data-gramm={domProps['data-gramm'] ? undefined : false}
       >
-        <Node
-          annotations={value.annotations}
-          block={null}
-          decorations={List()}
-          editor={editor}
-          node={document}
-          parent={null}
-          readOnly={readOnly}
-          selection={selection}
-          ref={this.tmp.nodeRef}
-        />
+        <Document editor={editor} node={document} ref={this.tmp.nodeRef} />
       </Container>
     )
   }

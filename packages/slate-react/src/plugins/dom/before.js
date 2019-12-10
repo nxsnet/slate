@@ -14,6 +14,7 @@ import SELECTORS from '../../constants/selectors'
 import sanitizeDomOnError from '../../utils/sanitize-dom-on-error'
 import safelyGetParentKeyNode from '../../utils/safely-get-parent-key-node'
 import findDomNode from '../../utils/find-dom-node'
+import { reconcileDOMNode } from '../../plugins/react/commands'
 
 /**
  * Debug.
@@ -490,6 +491,37 @@ function BeforePlugin() {
       return
     }
 
+    // Optimization: Bail out if none of the keys we care about were pressed!
+    if (
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      event.key != null
+    ) {
+      switch (event.key.toLowerCase()) {
+        case 'arrowdown':
+        case 'arrowleft':
+        case 'arrowright':
+        case 'arrowup':
+        case 'pageup':
+        case 'pagedown':
+        case 'backspace':
+        case 'delete':
+        case 'insert':
+        case 'home':
+        case 'end':
+        case 'enter':
+        case 'tab':
+        case 'space':
+          break
+
+        default:
+          console.log(event.key)
+          return
+      }
+    }
+
     // Certain hotkeys have native editing behaviors in `contenteditable`
     // elements which will editor the DOM and cause our value to be out of sync,
     // so they need to always be prevented.
@@ -652,7 +684,7 @@ function BeforePlugin() {
     // Last step is more of a sanity thing: Make sure the dom structure and text roughly match what slate things they should!
     // This is normally called in the after plugin, however if we do that there, it will re-sync the selection, which we
     // just did above, which wastes about a millisecond.
-    editor.reconcileDOMNode(textNode)
+    reconcileDOMNode(editor, textNode)
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log('    flush selAfterReconci:',JSON.stringify(editor.value.selection.toJSON()))
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`    editor: len: ${editor.value.document.text.length} selSlate: ${editor.value.selection.anchor.offset} selNative: ${window.getSelection().anchorOffset} document: ${JSON.stringify(editor.value.document.toJSON())}`)
 
@@ -741,7 +773,13 @@ function BeforePlugin() {
         numStartingCharsSame,
         newText.length - numEndingCharsSame
       )
-      editor.insertTextByPath(path, numStartingCharsSame, insertions, null)
+
+      editor.controller.fastInsertText(
+        path,
+        numStartingCharsSame,
+        insertions,
+        null
+      )
     }
   }
 
@@ -886,6 +924,7 @@ function BeforePlugin() {
         console.warn(
           'Aborting composition because previously selection node is no longer in the dom!'
         )
+
         isComposing = false
       }
     }

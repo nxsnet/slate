@@ -1,5 +1,4 @@
 import { Node } from 'slate'
-import warning from 'tiny-warning'
 
 import DATA_ATTRS from '../constants/data-attributes'
 

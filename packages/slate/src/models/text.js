@@ -17,13 +17,6 @@ const DEFAULTS = {
   text: undefined,
 }
 
-const Leaf = Record({
-  text: undefined,
-  marks: undefined,
-  annotations: undefined,
-  decorations: undefined,
-})
-
 /**
  * Text.
  *
@@ -144,14 +137,13 @@ class Text extends Record(DEFAULTS) {
    * Get a list of uniquely-formatted leaves for the text node, given its
    * existing marks, and its current `annotations` and `decorations`.
    *
-   * @param {Map<String,Annotation>} annotations
    * @param {List<Decoration>} decorations
    * @return {List<Leaf>}
    */
 
-  getLeaves(annotations, decorations) {
+  getLeaves(decorations) {
     const { text, marks } = this
-    let leaves = [{ text, marks, annotations: [], decorations: [] }]
+    let leaves = [{ text, marks, decorations: [] }]
 
     // Helper to split a leaf into two `at` an offset.
     const split = (leaf, at) => {
@@ -159,95 +151,77 @@ class Text extends Record(DEFAULTS) {
         {
           text: leaf.text.slice(0, at),
           marks: leaf.marks,
-          annotations: [...leaf.annotations],
           decorations: [...leaf.decorations],
         },
         {
           text: leaf.text.slice(at),
           marks: leaf.marks,
-          annotations: [...leaf.annotations],
           decorations: [...leaf.decorations],
         },
       ]
     }
 
-    // Helper to compile the leaves for a `kind` of format.
-    const compile = kind => {
-      const formats =
-        kind === 'annotations' ? annotations.values() : decorations
+    const formats = decorations
 
-      for (const format of formats) {
-        const { start, end } = format
-        const next = []
-        let o = 0
+    for (const format of formats) {
+      const { start, end } = format
+      const next = []
+      let o = 0
 
-        for (const leaf of leaves) {
-          const { length } = leaf.text
-          const offset = o
-          o += length
+      for (const leaf of leaves) {
+        const { length } = leaf.text
+        const offset = o
+        o += length
 
-          // If the range encompases the entire leaf, add the format.
-          if (start.offset <= offset && end.offset >= offset + length) {
-            leaf[kind].push(format)
-            next.push(leaf)
-            continue
-          }
-
-          // If the range starts after the leaf, or ends before it, continue.
-          if (
-            start.offset > offset + length ||
-            end.offset < offset ||
-            (end.offset === offset && offset !== 0)
-          ) {
-            next.push(leaf)
-            continue
-          }
-
-          // Otherwise we need to split the leaf, at the start, end, or both,
-          // and add the format to the middle intersecting section. Do the end
-          // split first since we don't need to update the offset that way.
-          let middle = leaf
-          let before
-          let after
-
-          if (end.offset < offset + length) {
-            ;[middle, after] = split(middle, end.offset - offset)
-          }
-
-          if (start.offset > offset) {
-            ;[before, middle] = split(middle, start.offset - offset)
-          }
-
-          middle[kind].push(format)
-
-          if (before) {
-            next.push(before)
-          }
-
-          next.push(middle)
-
-          if (after) {
-            next.push(after)
-          }
+        // If the range encompases the entire leaf, add the format.
+        if (start.offset <= offset && end.offset >= offset + length) {
+          leaf.decorations.push(format)
+          next.push(leaf)
+          continue
         }
 
-        leaves = next
+        // If the range starts after the leaf, or ends before it, continue.
+        if (
+          start.offset > offset + length ||
+          end.offset < offset ||
+          (end.offset === offset && offset !== 0)
+        ) {
+          next.push(leaf)
+          continue
+        }
+
+        // Otherwise we need to split the leaf, at the start, end, or both,
+        // and add the format to the middle intersecting section. Do the end
+        // split first since we don't need to update the offset that way.
+        let middle = leaf
+        let before
+        let after
+
+        if (end.offset < offset + length) {
+          ;[middle, after] = split(middle, end.offset - offset)
+        }
+
+        if (start.offset > offset) {
+          ;[before, middle] = split(middle, start.offset - offset)
+        }
+
+        middle.decorations.push(format)
+
+        if (before) {
+          next.push(before)
+        }
+
+        next.push(middle)
+
+        if (after) {
+          next.push(after)
+        }
       }
+
+      leaves = next
     }
 
-    compile('annotations')
-    compile('decorations')
-
-    leaves = leaves.map(leaf => {
-      return new Leaf({
-        ...leaf,
-        annotations: List(leaf.annotations),
-        decorations: List(leaf.decorations),
-      })
-    })
-
-    const list = List(leaves)
-    return list
+    return leaves
   }
 
   /**
