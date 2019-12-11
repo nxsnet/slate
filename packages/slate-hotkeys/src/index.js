@@ -15,6 +15,7 @@ const HOTKEYS = {
   moveWordBackward: 'ctrl+left',
   moveWordForward: 'ctrl+right',
   deleteBackward: 'shift?+backspace',
+  deleteForward: ['delete'],
   extendBackward: 'shift+left',
   extendForward: 'shift+right',
   italic: 'mod+i',

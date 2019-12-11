@@ -517,7 +517,6 @@ function BeforePlugin() {
           break
 
         default:
-          console.log(event.key)
           return
       }
     }
