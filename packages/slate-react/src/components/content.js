@@ -58,6 +58,7 @@ class Content extends React.Component {
     id: Types.string,
     onContextMenu: Types.func,
     onEvent: Types.func.isRequired,
+    domRef: Types.func,
     readOnly: Types.bool.isRequired,
     role: Types.string,
     spellCheck: Types.bool.isRequired,
@@ -127,6 +128,10 @@ class Content extends React.Component {
   setRef = el => {
     this.ref.current = el
     this.props.editor.el = el
+
+    if (this.props.domRef) {
+      this.props.domRef(el)
+    }
   }
 
   /**
