@@ -630,8 +630,14 @@ Commands.deleteWordBackwardAtRange = (editor, range) => {
   const offset = startBlock.getOffset(start.key)
   const o = offset + start.offset
   const { text } = startBlock
-  const n = o === 0 ? 1 : TextUtils.getWordOffsetBackward(text, o)
-  editor.deleteBackwardAtRange(range, n)
+  const remainingTextInNode = text.substring(offset, offset + start.offset)
+
+  if (offset > 0 && remainingTextInNode.trim().length === 0) {
+    editor.deleteBackwardAtRange(range, remainingTextInNode.length + 1)
+  } else {
+    const n = o === 0 ? 1 : TextUtils.getWordOffsetBackward(text, o)
+    editor.deleteBackwardAtRange(range, n)
+  }
 }
 
 /**
@@ -652,8 +658,25 @@ Commands.deleteWordForwardAtRange = (editor, range) => {
   const { start } = range
   const startBlock = document.getClosestBlock(start.path)
   const offset = startBlock.getOffset(start.key)
+  const node = startBlock.getNode(start.key)
   const o = offset + start.offset
   const { text } = startBlock
+
+  const remainingTextInNode = node.text.substring(start.offset)
+
+  if (remainingTextInNode.trim().length === 0) {
+    const nodeIndex = startBlock.nodes.indexOf(node)
+
+    if (nodeIndex + 1 < startBlock.nodes.size) {
+      const nextNode = startBlock.nodes.get(nodeIndex + 1)
+
+      if (nextNode != null && nextNode.object === 'inline') {
+        editor.deleteForwardAtRange(range, remainingTextInNode.length + 1)
+        return
+      }
+    }
+  }
+
   const wordOffset = TextUtils.getWordOffsetForward(text, o)
   const n = wordOffset === 0 ? 1 : wordOffset
   editor.deleteForwardAtRange(range, n)
