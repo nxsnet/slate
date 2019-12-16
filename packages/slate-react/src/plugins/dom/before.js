@@ -49,6 +49,8 @@ function BeforePlugin() {
    */
 
   function onBeforeInput(event, editor, next) {
+    editor.ensureSelection()
+
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onBeforeInput with data:${JSON.stringify(event.data)} inputType:${event.inputType} has2:${HAS_INPUT_EVENTS_LEVEL_2} isSynthetic:${!!event.nativeEvent}`)
 
     // If the user has started a composition for something like a chinese character
@@ -217,6 +219,8 @@ function BeforePlugin() {
    */
 
   function onCompositionStart(event, editor, next) {
+    editor.ensureSelection()
+
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onCompositionStart isComposing:${isComposing} isCollapsed:${editor.value.selection.isCollapsed}`)
 
     isComposing = true
@@ -446,6 +450,8 @@ function BeforePlugin() {
    */
 
   function onInput(event, editor, next) {
+    editor.ensureSelection()
+
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onInput isComposing:${isComposing} hasOp:${!!nextNativeOperation}`)
 
     if (checkIsComposing()) {
@@ -481,6 +487,8 @@ function BeforePlugin() {
 
   function onKeyDown(event, editor, next) {
     if (editor.readOnly) return
+    editor.ensureSelection()
+
     /* prettier-ignore */ if (window.ENABLE_SLATE_LOGGING) console.log(`!! onKeyDown isComposing:${isComposing} hasOp:${!!nextNativeOperation} mods:${event.ctrlKey ? 'ctrl-' : ''}${event.altKey ? 'alt-' : ''}${event.shiftKey ? 'shift-' : ''}${event.metaKey ? 'meta-' : ''} key:${event.key} which:${event.which}`)
 
     // When composing, we need to prevent all hotkeys from executing while

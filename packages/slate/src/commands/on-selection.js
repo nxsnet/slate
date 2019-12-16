@@ -1,6 +1,7 @@
 import { is } from 'immutable'
 import pick from 'lodash/pick'
 
+import Range from '../models/range'
 import Selection from '../models/selection'
 import TextUtils from '../utils/text-utils'
 
@@ -13,6 +14,28 @@ Commands.blur = editor => {
 Commands.deselect = editor => {
   const range = Selection.create()
   editor.select(range)
+}
+
+Commands.ensureSelection = editor => {
+  const { selection, document } = editor.value
+
+  if (
+    selection.start == null ||
+    selection.end == null ||
+    selection.start.isUnset ||
+    selection.end.isUnset
+  ) {
+    const firstText = document.getFirstText()
+
+    if (firstText != null) {
+      const point = {
+        offset: 0,
+        key: firstText.key,
+        path: document.getPath(firstText.key),
+      }
+      editor.select(Range.create({ anchor: point, focus: point }))
+    }
+  }
 }
 
 Commands.focus = editor => {
