@@ -12,11 +12,15 @@ export default function mixin(Interface, Classes) {
       if (Class.hasOwnProperty(name)) continue
       const desc = Object.getOwnPropertyDescriptor(Interface, name)
 
-      if (desc == null) {
-        console.log(`Property descriptor was undefined for: ${name}`)
-        Class[name] = Class[name]
-      } else {
-        Object.defineProperty(Class, name, desc)
+      try {
+        if (desc == null) {
+          console.log(`Property descriptor was undefined for: ${name}`)
+          Class[name] = Class[name]
+        } else {
+          Object.defineProperty(Class, name, desc)
+        }
+      } catch (e) {
+        /* ignored */
       }
     }
 
@@ -25,11 +29,18 @@ export default function mixin(Interface, Classes) {
       if (Class.prototype.hasOwnProperty(name)) continue
       const desc = Object.getOwnPropertyDescriptor(Interface.prototype, name)
 
-      if (desc == null) {
-        console.log(`Property prototype descriptor was undefined for: ${name}`)
-        Class.prototype[name] = Interface.prototype[name]
-      } else {
-        Object.defineProperty(Class.prototype, name, desc)
+      try {
+        if (desc == null) {
+          console.log(
+            `Property prototype descriptor was undefined for: ${name}`
+          )
+
+          Class.prototype[name] = Interface.prototype[name]
+        } else {
+          Object.defineProperty(Class.prototype, name, desc)
+        }
+      } catch (e) {
+        /* ignored */
       }
     }
   }
