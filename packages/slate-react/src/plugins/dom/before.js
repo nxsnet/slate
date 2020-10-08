@@ -862,13 +862,6 @@ function BeforePlugin() {
       const isStringNode = stringNode.hasAttribute(DATA_ATTRS.STRING)
       const isZeroWidth = stringNode.hasAttribute(DATA_ATTRS.ZERO_WIDTH)
 
-      if (
-        stringNode.textContent.indexOf('\n') >= 0 ||
-        stringNode.textContent.indexOf('\r') >= 0
-      ) {
-        removeLineBreaks(stringNode)
-      }
-
       // This should basically always be true:
       if (isStringNode || isZeroWidth) {
         const hasZeroWidthChars = stringNode.textContent.indexOf('\uFEFF') >= 0
@@ -900,23 +893,6 @@ function BeforePlugin() {
         textNode.deleteData(pos, 1)
       }
     })
-  }
-
-  function removeLineBreaks(parent) {
-    eachTextNode(parent, textNode => {
-      replaceStr(textNode, '\r\n')
-      replaceStr(textNode, '\r')
-      replaceStr(textNode, '\n')
-    })
-  }
-
-  function replaceStr(textNode, str) {
-    while (true) {
-      const pos = textNode.textContent.indexOf(str)
-      if (pos === -1) break
-      textNode.deleteData(pos, str.length)
-      textNode.deleteData(pos, ' ')
-    }
   }
 
   function eachTextNode(node, cb) {
