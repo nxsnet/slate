@@ -573,20 +573,20 @@ function normalizeNodeAndOffset(node, offset) {
   // If it's an element node, its offset refers to the index of its children
   // including comment nodes, so try to find the right text child node.
   if (node.nodeType === 1 && node.childNodes.length) {
-    const isLast = offset === node.childNodes.length
-    const direction = isLast ? 'backward' : 'forward'
-    const index = isLast ? offset - 1 : offset
+    const isFirst = offset === 0
+    const direction = isFirst ? 'forward' : 'backward'
+    const index = isFirst ? offset : offset - 1
     node = getEditableChild(node, index, direction)
 
     // If the node has children, traverse until we have a leaf node. Leaf nodes
     // can be either text nodes, or other void DOM nodes.
     while (node.nodeType === 1 && node.childNodes.length) {
-      const i = isLast ? node.childNodes.length - 1 : 0
+      const i = isFirst ? 0 : node.childNodes.length - 1
       node = getEditableChild(node, i, direction)
     }
 
     // Determine the new offset inside the text node.
-    offset = node.textContent.length
+    offset = isFirst ? 0 : node.textContent.length
   }
 
   // Return the node and offset.
